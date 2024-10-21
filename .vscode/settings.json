@@ -3,7 +3,7 @@
   "files.associations": {
     "adc_continuous.h": "c"
   },
-  "idf.portWin": "COM5",
+  "idf.portWin": "COM10",
   "idf.adapterTargetName": "esp32",
   "idf.openOcdConfigs": [
     "board/esp32-wrover-kit-3.3v.cfg"

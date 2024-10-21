@@ -1,0 +1,13 @@
+# Target labels
+ bootloader
+# Source files and their labels
+C:/Repos/Skateboard_speedometer/CMakeFiles/bootloader
+C:/Repos/Skateboard_speedometer/CMakeFiles/bootloader.rule
+C:/Repos/Skateboard_speedometer/CMakeFiles/bootloader-complete.rule
+C:/Repos/Skateboard_speedometer/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+C:/Repos/Skateboard_speedometer/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+C:/Repos/Skateboard_speedometer/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+C:/Repos/Skateboard_speedometer/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+C:/Repos/Skateboard_speedometer/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+C:/Repos/Skateboard_speedometer/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+C:/Repos/Skateboard_speedometer/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
