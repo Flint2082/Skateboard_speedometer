@@ -1,11 +1,14 @@
 {
   "C_Cpp.intelliSenseEngine": "default",
   "files.associations": {
-    "adc_continuous.h": "c"
+    "adc_continuous.h": "c",
+    "*.tcc": "cpp",
+    "format": "cpp"
   },
-  "idf.portWin": "COM10",
+  "idf.portWin": "COM3",
   "idf.adapterTargetName": "esp32",
   "idf.openOcdConfigs": [
     "board/esp32-wrover-kit-3.3v.cfg"
-  ]
+  ],
+  "idf.flashType": "UART"
 }
