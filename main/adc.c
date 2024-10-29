@@ -1,13 +1,13 @@
 #include "adc.h"
 
-
+static TaskHandle_t adc_task_handle;
 static const char *TAG = "ADC"; 
 
 
 
 
 // #define ADC_UNIT ADC_UNIT_1
-static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle)
+void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle)
 {
     adc_continuous_handle_t handle = NULL;
 
@@ -18,12 +18,12 @@ static void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc
     ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
 
     adc_continuous_config_t dig_cfg = {
-        .sample_freq_hz = 20 * 1000,
+        .sample_freq_hz = READ_SPEED, // 20KHz
         .conv_mode = ADC_CONV_MODE,
         .format = ADC_OUTPUT_TYPE,
     };
 
-    adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0};
+    adc_digi_pattern_config_t adc_pattern[SOC_ADC_PATT_LEN_MAX] = {0}; // memory alloc for the pattern config
     dig_cfg.pattern_num = channel_num;
     for (int i = 0; i < channel_num; i++) {
         adc_pattern[i].atten = ADC_ATTEN;
