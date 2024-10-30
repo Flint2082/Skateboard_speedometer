@@ -25,13 +25,15 @@
 #define ADC_GET_CHANNEL(p_data)     ((p_data)->type1.channel)
 #define ADC_GET_DATA(p_data)        ((p_data)->type1.data)
 
-#define READ_LEN                    256
-#define READ_SPEED                  20 * 1000
+
+#define READ_SPEED                  SOC_ADC_SAMPLE_FREQ_THRES_LOW // 20kHz
+#define POOL_SIZE                   1024
+#define FRAMES_PER_POOL             2
+#define READ_LEN                    (POOL_SIZE / FRAMES_PER_POOL)
 
 
 
-
-void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle); 
+void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle, uint16_t sample_freq ); 
 
 
 #endif // ADC_H

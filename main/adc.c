@@ -1,24 +1,24 @@
 #include "adc.h"
 
-static TaskHandle_t adc_task_handle;
-static const char *TAG = "ADC"; 
+static TaskHandle_t adc_task_handle; // task handle for the ADC task
+static const char *TAG = "ADC"; // tag for the ADC task
 
 
 
 
 // #define ADC_UNIT ADC_UNIT_1
-void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle)
+void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle, uint16_t sample_freq )
 {
     adc_continuous_handle_t handle = NULL;
 
     adc_continuous_handle_cfg_t adc_config = {
-        .max_store_buf_size = 1024,
+        .max_store_buf_size = POOL_SIZE,
         .conv_frame_size = READ_LEN,
-    };
-    ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle));
+    };  
+    ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle)); // create a new handle for the ADC continuous mode driver
 
     adc_continuous_config_t dig_cfg = {
-        .sample_freq_hz = READ_SPEED, // 20KHz
+        .sample_freq_hz = sample_freq, 
         .conv_mode = ADC_CONV_MODE,
         .format = ADC_OUTPUT_TYPE,
     };
@@ -35,8 +35,8 @@ void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_contin
         ESP_LOGI(TAG, "adc_pattern[%d].channel is :%"PRIx8, i, adc_pattern[i].channel);
         ESP_LOGI(TAG, "adc_pattern[%d].unit is :%"PRIx8, i, adc_pattern[i].unit);
     }
-    dig_cfg.adc_pattern = adc_pattern;
-    ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg));
+    dig_cfg.adc_pattern = adc_pattern; // set the pattern config to the digital config
+    ESP_ERROR_CHECK(adc_continuous_config(handle, &dig_cfg)); // configure the ADC continuous mode driver
 
-    *out_handle = handle;
+    *out_handle = handle; // return the handle
 }
