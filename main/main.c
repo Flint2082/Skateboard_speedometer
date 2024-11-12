@@ -1,5 +1,6 @@
 #include "main.h"
 #include "adc.h"
+#include "driver/adc.h" // Include the header file that defines adc_channel_t
 
 
 static adc_channel_t channel[1] = {ADC_CHANNEL_6};
@@ -76,6 +77,7 @@ void app_main(void)
                 }
 
                 printf("%li \n", (average/(ret_num/SOC_ADC_DIGI_RESULT_BYTES)));
+                
                 /**
                  * Because printing is slow, so every time you call `ulTaskNotifyTake`, it will immediately return.
                  * To avoid a task watchdog timeout, add a delay here. When you replace the way you process the data,
