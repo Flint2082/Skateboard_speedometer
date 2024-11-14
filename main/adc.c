@@ -9,11 +9,12 @@ static const char *TAG = "ADC"; // tag for the ADC task
 // #define ADC_UNIT ADC_UNIT_1
 void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle, uint16_t sample_freq )
 {
+    ESP_LOGI(TAG, "Start ADC init task");
     adc_continuous_handle_t handle = NULL;
 
     adc_continuous_handle_cfg_t adc_config = {
         .max_store_buf_size = POOL_SIZE,
-        .conv_frame_size = READ_LEN,
+        .conv_frame_size = FRAME_LEN,
     };  
     ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &handle)); // create a new handle for the ADC continuous mode driver
 
