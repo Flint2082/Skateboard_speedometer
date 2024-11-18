@@ -1,3 +1,3 @@
-idf_component_register(SRCS "main.c" "adc.c"
+idf_component_register(SRCS "sigproc.c" "main.c" "adc.c"
                     INCLUDE_DIRS ".")
                     

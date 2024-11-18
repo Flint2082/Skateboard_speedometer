@@ -29,11 +29,11 @@ uint16_t freq_reader(uint32_t* data_buf, uint16_t buf_len)
 
     for(int i = 0; i < buf_len; i++)
     {
-        printf("%d\n", conv_buf[i]);
+        printf("%lu\n", conv_buf[i]);
     }
 
     // vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     
-
+    return 0;
 }
