@@ -10,7 +10,7 @@ uint16_t freq_reader(uint32_t* data_buf, uint16_t buf_len)
     uint32_t* conv_buf = (uint32_t*)malloc(sizeof(uint32_t) * (buf_len + 4));
     if (conv_buf == NULL)
     {
-        // ESP_LOGE(TAG, "Memory allocation failed");
+        ESP_LOGE(TAG, "Memory allocation failed");
         return 0;
     }
     for(int i = 0; i < buf_len + 4; i++)
@@ -29,11 +29,11 @@ uint16_t freq_reader(uint32_t* data_buf, uint16_t buf_len)
 
     for(int i = 0; i < buf_len; i++)
     {
-        printf("%d\n", conv_buf[i]);
+        printf("%lu\n", conv_buf[i]);
     }
 
-    // vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    
+    return 0;
 
 }

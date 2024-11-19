@@ -30,8 +30,13 @@ void app_main(void)
     uint32_t ret_num = 0; // 
     uint8_t result[FRAME_LEN] = {0}; // array to store the result of the ADC conversion
     memset(result, 0xcc, FRAME_LEN); // fill the array with 0xcc
-    uint32_t adc_buffer[BUF_SIZE] = {0}; // array to store the result of the ADC conversion for 8 frames
 
+    ESP_LOGI(TAG, "Memory allocation for buffer");
+    uint32_t* adc_buffer = (uint32_t*)malloc(sizeof(uint32_t) * BUF_SIZE); // allocate memory for the buffer
+    if(adc_buffer == NULL) ESP_LOGE(TAG, "Failed to allocate buffer memory"); 
+    memset(adc_buffer, 0, BUF_SIZE); // fill the buffer with 0
+
+    
     s_task_handle = xTaskGetCurrentTaskHandle();
 
     adc_continuous_handle_t adc_handle = NULL;
@@ -61,6 +66,7 @@ void app_main(void)
         while (1) {
             uint32_t average = 0;
             ret = adc_continuous_read(adc_handle, result, FRAME_LEN, &ret_num, 0);
+            ESP_LOGI(TAG, "Read %lu samples", ret_num);
             if (ret == ESP_OK) {
                 for (int i = 0; i < FRAME_LEN; i++) {
                     adc_buffer[framecount*FRAME_LEN + i] = adc_buffer[FRAMES_PER_CONVERSION + framecount*FRAME_LEN + i]; // shift one frame in the buffer by 4 frames
@@ -71,6 +77,7 @@ void app_main(void)
                 {
                     // uint16_t freq = freq_reader(adc_buffer, BUF_SIZE); // call the freq_reader function
                     printf("final buf value: %lu\n", adc_buffer[BUF_SIZE - 1]); // print the final value of the buffer
+                    printf("first buf value: %lu\n", adc_buffer[0]); // print the final value of the buffer
                     framecount = 0; // reset the frame count
                 }
                 vTaskDelay(10 / portTICK_PERIOD_MS); // was 1 
