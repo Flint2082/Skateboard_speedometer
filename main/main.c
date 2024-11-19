@@ -28,13 +28,16 @@ void app_main(void)
     esp_err_t ret; // var for error checking
     uint8_t framecount = 0; // var to store the frame count
     uint32_t ret_num = 0; // 
-    uint8_t result[FRAME_LEN] = {0}; // array to store the result of the ADC conversion
-    memset(result, 0xcc, FRAME_LEN); // fill the array with 0xcc
 
-    ESP_LOGI(TAG, "Memory allocation for buffer");
-    uint32_t* adc_buffer = (uint32_t*)malloc(sizeof(uint32_t) * BUF_SIZE); // allocate memory for the buffer
-    if(adc_buffer == NULL) ESP_LOGE(TAG, "Failed to allocate buffer memory"); 
-    memset(adc_buffer, 0, BUF_SIZE); // fill the buffer with 0
+    ESP_LOGI(TAG, "Memory allocation for frame buffer");
+    adc_digi_output_data_t* result = (adc_digi_output_data_t*)malloc(sizeof(adc_digi_output_data_t) * FRAME_LEN); // allocate memory for the frame buffer
+    if(result == NULL) ESP_LOGE(TAG, "Failed to allocate frame buffer memory"); 
+    memset(result, 0, sizeof(adc_digi_output_data_t) *FRAME_LEN); // fill the array with 0
+
+    ESP_LOGI(TAG, "Memory allocation for conv buffer");
+    uint16_t* adc_buffer = (uint16_t*)malloc(sizeof(uint16_t) * BUF_SIZE); // allocate memory for the conv buffer
+    if(adc_buffer == NULL) ESP_LOGE(TAG, "Failed to allocate conv buffer memory"); 
+    memset(adc_buffer, 0, sizeof(uint16_t) * BUF_SIZE); // fill the buffer with 0
 
     
     s_task_handle = xTaskGetCurrentTaskHandle();
@@ -58,29 +61,38 @@ void app_main(void)
          * Without using this event callback (to notify this task), you can still just call
          * `adc_continuous_read()` here in a loop, with/without a certain block timeout.
          */
-        ESP_LOGI(TAG, "Waiting for ADC data ready");
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // block the task until the notification is received                
-    	ESP_LOGI(TAG, "ADC data ready");
+        #ifdef DEBUG 
+            (TAG, "Waiting for ADC data ready");
+        #endif
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // block the task until the notification is received    
+        #ifdef DEBUG            
+    	    ESP_LOGI(TAG, "ADC data ready");
+        #endif
         char unit[] = ADC_UNIT_STR(ADC_UNIT);
         
         while (1) {
             uint32_t average = 0;
-            ret = adc_continuous_read(adc_handle, result, FRAME_LEN, &ret_num, 0);
-            ESP_LOGI(TAG, "Read %lu samples", ret_num);
+            ret = adc_continuous_read(adc_handle, result, sizeof(uint16_t)*FRAME_LEN, &ret_num, 0);
+            #ifdef DEBUG
+                ESP_LOGI(TAG, "Read %lu samples", ret_num);
+            #endif
             if (ret == ESP_OK) {
                 for (int i = 0; i < FRAME_LEN; i++) {
-                    adc_buffer[framecount*FRAME_LEN + i] = adc_buffer[FRAMES_PER_CONVERSION + framecount*FRAME_LEN + i]; // shift one frame in the buffer by 4 frames
-                    adc_buffer[FRAMES_PER_CONVERSION + framecount*FRAME_LEN + i] = result[i]; // store the result of the ADC conversion in the buffer
-                }              
+                    adc_buffer[(FRAMES_PER_CONVERSION + framecount)*FRAME_LEN + i] = adc_buffer[framecount*FRAME_LEN + i]; // shift one frame in the buffer by 4 frames
+                    adc_buffer[framecount*FRAME_LEN + i] = result[i].type1.data; // store the result of the ADC conversion in the buffer
+                }          
                 framecount++; // increment the frame count
-                if(framecount == FRAMES_PER_CONVERSION) // if the frame count is equal to 4
+                printf("framecount: %u\n", framecount);
+                if(framecount == FRAMES_PER_CONVERSION) // every 4 frames
                 {
+                    for(int i = 0; i < BUF_SIZE; i = i + 50)
+                    {
+                        printf("data: %u\n", adc_buffer[i]);
+                    }
                     // uint16_t freq = freq_reader(adc_buffer, BUF_SIZE); // call the freq_reader function
-                    printf("final buf value: %lu\n", adc_buffer[BUF_SIZE - 1]); // print the final value of the buffer
-                    printf("first buf value: %lu\n", adc_buffer[0]); // print the final value of the buffer
                     framecount = 0; // reset the frame count
                 }
-                vTaskDelay(10 / portTICK_PERIOD_MS); // was 1 
+                vTaskDelay(30 / portTICK_PERIOD_MS); // was 1 
             } else if (ret == ESP_ERR_TIMEOUT) {
                 //We try to read `FRAME_LEN` until API returns timeout, which means there's no available data
                 break;

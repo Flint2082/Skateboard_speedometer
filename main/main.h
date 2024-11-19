@@ -14,4 +14,6 @@
 #include "freertos/semphr.h"
 #include "esp_adc/adc_continuous.h"
 
+// #define DEBUG 
+
 #endif // MAIN_H
