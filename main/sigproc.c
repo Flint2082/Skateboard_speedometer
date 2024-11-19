@@ -32,8 +32,8 @@ uint16_t freq_reader(uint32_t* data_buf, uint16_t buf_len)
         printf("%lu\n", conv_buf[i]);
     }
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    // vTaskDelay(1000 / portTICK_PERIOD_MS);
 
+    
     return 0;
-
 }
