@@ -72,22 +72,22 @@ void app_main(void)
         
         while (1) {
             uint32_t average = 0;
-            ret = adc_continuous_read(adc_handle, result, sizeof(uint16_t)*FRAME_LEN, &ret_num, 0);
+            ret = adc_continuous_read(adc_handle, result, sizeof(adc_digi_output_data_t)*FRAME_LEN, &ret_num, 0);
             #ifdef DEBUG
                 ESP_LOGI(TAG, "Read %lu samples", ret_num);
             #endif
             if (ret == ESP_OK) {
                 for (int i = 0; i < FRAME_LEN; i++) {
-                    adc_buffer[(FRAMES_PER_CONVERSION + framecount)*FRAME_LEN + i] = adc_buffer[framecount*FRAME_LEN + i]; // shift one frame in the buffer by 4 frames
-                    adc_buffer[framecount*FRAME_LEN + i] = result[i].type1.data; // store the result of the ADC conversion in the buffer
+                    adc_buffer[framecount*FRAME_LEN + i] = adc_buffer[(FRAMES_PER_CONVERSION + framecount)*FRAME_LEN + i]; // shift one frame in the buffer by 4 frames
+                    adc_buffer[(FRAMES_PER_CONVERSION + framecount)*FRAME_LEN + i] = result[i].type1.data; // store the result of the ADC conversion in the buffer
                 }          
                 framecount++; // increment the frame count
-                printf("framecount: %u\n", framecount);
+                // printf("framecount: %u\n", framecount);
                 if(framecount == FRAMES_PER_CONVERSION) // every 4 frames
                 {
-                    for(int i = 0; i < BUF_SIZE; i = i + 50)
+                    for(int i = BUF_SIZE/2; i < BUF_SIZE; i = i + 100)
                     {
-                        printf("data: %u\n", adc_buffer[i]);
+                        printf("data: %u\tframecount: %u\n", adc_buffer[i], framecount);
                     }
                     // uint16_t freq = freq_reader(adc_buffer, BUF_SIZE); // call the freq_reader function
                     framecount = 0; // reset the frame count

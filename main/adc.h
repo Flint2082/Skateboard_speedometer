@@ -27,12 +27,12 @@
 
 
 #define READ_SPEED                  SOC_ADC_SAMPLE_FREQ_THRES_LOW // 20kHz
-#define POOL_SIZE                   1024
-#define FRAMES_PER_POOL             2
-#define FRAME_LEN                    (POOL_SIZE / FRAMES_PER_POOL)
+#define POOL_SIZE                   2048
+#define FRAMES_PER_POOL             4
+#define FRAME_LEN                   (POOL_SIZE / FRAMES_PER_POOL)
 #define FRAMES_PER_CONVERSION       4
-#define BUF_MULTIPLIER              2
-#define BUF_SIZE                    (FRAME_LEN * FRAMES_PER_CONVERSION * BUF_MULTIPLIER)
+#define ADC_BUFFER_MULTIPLIER       2
+#define BUF_SIZE                    (FRAME_LEN * FRAMES_PER_CONVERSION * ADC_BUFFER_MULTIPLIER)
 
 
 
