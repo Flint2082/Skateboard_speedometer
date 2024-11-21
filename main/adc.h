@@ -36,7 +36,7 @@
 
 
 
-void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle, uint16_t sample_freq ); 
+void continuous_adc_init(adc_channel_t *channel, uint8_t channel_num, adc_continuous_handle_t *out_handle); 
 
 
 #endif // ADC_H

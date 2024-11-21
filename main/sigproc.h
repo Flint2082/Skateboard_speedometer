@@ -14,9 +14,10 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "esp_adc/adc_continuous.h"
+#include "driver/gpio.h"
 
 
-uint16_t freq_reader(uint32_t* data_buf, uint16_t buf_len);
+int16_t freq_reader(uint16_t* data_buf, uint16_t buf_len);
 
 #endif // SIGPROC_H
 

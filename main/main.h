@@ -14,6 +14,8 @@
 #include "freertos/semphr.h"
 #include "esp_adc/adc_continuous.h"
 
+#define BUTTON_GPIO 2 // GPIO pin for the button
+
 // #define DEBUG 
 
 #endif // MAIN_H

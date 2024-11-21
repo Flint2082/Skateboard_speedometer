@@ -1,39 +1,51 @@
 #include "sigproc.h"
 
-#define KERNEL {1, 1, 1, 1, 1}
+#define KERNEL_SIZE 50  // kernel size for convolution
+
 
 #define TAG "SIGPROC"
 
-uint16_t freq_reader(uint32_t* data_buf, uint16_t buf_len)
+int16_t freq_reader(uint16_t* data_buf, uint16_t buf_len)
 {
-    float kernel[5] = KERNEL;
-    uint32_t* conv_buf = (uint32_t*)malloc(sizeof(uint32_t) * (buf_len + 4));
+    uint32_t sum = 0; // sum of the data buffer
+    uint16_t average = 0; // average of the data buffer
+    uint16_t zero_crossing = 0; // zero crossing count
+    uint8_t kernel[KERNEL_SIZE] = {1}; // moving average kernel for convolution	    
+    uint16_t* conv_buf = (uint16_t*)malloc(sizeof(uint16_t) * buf_len); // allocate memory for the convolution buffer
     if (conv_buf == NULL)
     {
-        ESP_LOGE(TAG, "Memory allocation failed");
-        return 0;
+        ESP_LOGE(TAG, "convolution buffer memory allocation failed");
+        return -1;
     }
-    for(int i = 0; i < buf_len + 4; i++)
-    {
-        conv_buf[i] = 0;
-    }
+    memset(conv_buf, 0, sizeof(uint16_t) * buf_len); // fill the buffer with 0
 
-
-    for (int i = 0; i < buf_len - 4; i++)
+    for (int i = 0; i < buf_len - KERNEL_SIZE-1; i++)
     {
-        for(int j = 0; j < 5; j++)
+        for(int j = 0; j < KERNEL_SIZE; j++)
         {
             conv_buf[i] += data_buf[i + j] * kernel[j];
-        }   
+        }  
+        conv_buf[i] = conv_buf[i] >> 6; // divide by 64
+        sum += conv_buf[i];
     }
-
+    average = sum / (buf_len - KERNEL_SIZE - 1); // calculate the average of the data buffer
     for(int i = 0; i < buf_len; i++)
     {
-        printf("%lu\n", conv_buf[i]);
+        if(i != 0 && conv_buf[i] > average && conv_buf[i-1] < average) // check for zero crossing
+        {
+            zero_crossing++;
+        }
     }
 
-    // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
+    memcpy(data_buf, conv_buf, sizeof(uint16_t) * buf_len); // copy the convolution result to the data buffer
     
-    return 0;
+    if(gpio_get_level(BUTTON_GPIO))// read the GPIO level
+        {
+            for(int i = 0; i < BUF_SIZE; i++)
+                {
+                    printf("data: %u\n", data_buf[i]); // print the data buffer
+                }
+        } 
+    free(conv_buf); // free the convolution buffer
+    return zero_crossing; // return the zero crossing count
 }

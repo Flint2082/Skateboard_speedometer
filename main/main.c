@@ -24,10 +24,19 @@ static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t adc_handle, const a
 
 void app_main(void)
 {   
+    gpio_config_t io_conf; // GPIO config struct
+    io_conf.pin_bit_mask = (1ULL << BUTTON_GPIO); // set the GPIO pin mask
+    io_conf.mode = GPIO_MODE_INPUT; // set the GPIO mode to input
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE; // disable the pull up resistor  
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE; // disable the pull down resistor
+    io_conf.intr_type = GPIO_INTR_DISABLE; // disable the GPIO interrupt
+    gpio_config(&io_conf); // configure the GPIO
+
     ESP_LOGI(TAG, "Start main task");
     esp_err_t ret; // var for error checking
     uint8_t framecount = 0; // var to store the frame count
     uint32_t ret_num = 0; // 
+    uint16_t freq = 0; // var to store the frequency
 
     ESP_LOGI(TAG, "Memory allocation for frame buffer");
     adc_digi_output_data_t* result = (adc_digi_output_data_t*)malloc(sizeof(adc_digi_output_data_t) * FRAME_LEN); // allocate memory for the frame buffer
@@ -43,7 +52,7 @@ void app_main(void)
     s_task_handle = xTaskGetCurrentTaskHandle();
 
     adc_continuous_handle_t adc_handle = NULL;
-    continuous_adc_init(channel, sizeof(channel) / sizeof(adc_channel_t), &adc_handle, READ_SPEED);
+    continuous_adc_init(channel, sizeof(channel) / sizeof(adc_channel_t), &adc_handle);
 
     adc_continuous_evt_cbs_t cbs = { // callback functions for the ADC continuous mode driver
         .on_conv_done = s_conv_done_cb,
@@ -51,7 +60,8 @@ void app_main(void)
     ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(adc_handle, &cbs, NULL)); 
     ESP_ERROR_CHECK(adc_continuous_start(adc_handle)); // start the ADC continuous mode driver
 
-    while (1) {
+    while (1) 
+    {
 
         /**
          * This is to show you the way to use the ADC continuous mode driver event callback.
@@ -70,36 +80,42 @@ void app_main(void)
         #endif
         char unit[] = ADC_UNIT_STR(ADC_UNIT);
         
-        while (1) {
-            uint32_t average = 0;
-            ret = adc_continuous_read(adc_handle, result, sizeof(adc_digi_output_data_t)*FRAME_LEN, &ret_num, 0);
-            #ifdef DEBUG
+        while (1) 
+        {
+            ret = adc_continuous_read(adc_handle, (uint8_t*)result, sizeof(uint16_t)*FRAME_LEN, &ret_num, 0);
+            #ifdef DEBUG 
                 ESP_LOGI(TAG, "Read %lu samples", ret_num);
             #endif
-            if (ret == ESP_OK) {
-                for (int i = 0; i < FRAME_LEN; i++) {
-                    adc_buffer[framecount*FRAME_LEN + i] = adc_buffer[(FRAMES_PER_CONVERSION + framecount)*FRAME_LEN + i]; // shift one frame in the buffer by 4 frames
-                    adc_buffer[(FRAMES_PER_CONVERSION + framecount)*FRAME_LEN + i] = result[i].type1.data; // store the result of the ADC conversion in the buffer
+            if (ret == ESP_OK) 
+            {
+                for (int i = 0; i < FRAME_LEN; i++) 
+                {
+                    //adc_buffer[(framecount*FRAME_LEN) + i] = adc_buffer[((FRAMES_PER_CONVERSION + framecount)*FRAME_LEN) + i]; // shift one frame in the buffer by 4 frames
+                    adc_buffer[((FRAMES_PER_CONVERSION + framecount)*FRAME_LEN) + i] = result[i].type1.data; // store the result of the ADC conversion in the buffer
                 }          
                 framecount++; // increment the frame count
-                // printf("framecount: %u\n", framecount);
+
                 if(framecount == FRAMES_PER_CONVERSION) // every 4 frames
                 {
-                    for(int i = BUF_SIZE/2; i < BUF_SIZE; i = i + 100)
-                    {
-                        printf("data: %u\tframecount: %u\n", adc_buffer[i], framecount);
-                    }
-                    // uint16_t freq = freq_reader(adc_buffer, BUF_SIZE); // call the freq_reader function
+                    freq = freq_reader(adc_buffer, BUF_SIZE); // call the freq_reader function
+                    // printf("zero crossing: %u\n", freq); // print the zero crossing count
+                    
                     framecount = 0; // reset the frame count
+                    memcpy(adc_buffer, &adc_buffer[FRAME_LEN*FRAMES_PER_CONVERSION], sizeof(uint16_t) * FRAME_LEN*FRAMES_PER_CONVERSION); // shift the buffer by 4 frames
                 }
-                vTaskDelay(30 / portTICK_PERIOD_MS); // was 1 
-            } else if (ret == ESP_ERR_TIMEOUT) {
+                // vTaskDelay(10 / portTICK_PERIOD_MS); // was 1 
+            } else if (ret == ESP_ERR_TIMEOUT) 
+            {
                 //We try to read `FRAME_LEN` until API returns timeout, which means there's no available data
                 break;
             }
+
         }
+
     }
 
     ESP_ERROR_CHECK(adc_continuous_stop(adc_handle));
     ESP_ERROR_CHECK(adc_continuous_deinit(adc_handle));
+    free(result);
+    free(adc_buffer);
 }
