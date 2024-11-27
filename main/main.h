@@ -16,6 +16,8 @@
 
 #define BUTTON_GPIO 2 // GPIO pin for the button
 
+extern BaseType_t adc_task_handle; // global task handle for the ADC task
+
 // #define DEBUG 
 
 #endif // MAIN_H

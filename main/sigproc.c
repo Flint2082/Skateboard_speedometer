@@ -1,6 +1,6 @@
 #include "sigproc.h"
 
-#define KERNEL_SIZE 50  // kernel size for convolution
+#define KERNEL_SIZE 10  // kernel size for convolution
 
 
 #define TAG "SIGPROC"
@@ -10,7 +10,8 @@ int16_t freq_reader(uint16_t* data_buf, uint16_t buf_len)
     uint32_t sum = 0; // sum of the data buffer
     uint16_t average = 0; // average of the data buffer
     uint16_t zero_crossing = 0; // zero crossing count
-    uint8_t kernel[KERNEL_SIZE] = {1}; // moving average kernel for convolution	    
+    uint8_t kernel[KERNEL_SIZE]; // moving average kernel for convolution	    
+    memset(kernel, 1, sizeof(uint8_t) * KERNEL_SIZE); // fill the kernel with 1
     uint16_t* conv_buf = (uint16_t*)malloc(sizeof(uint16_t) * buf_len); // allocate memory for the convolution buffer
     if (conv_buf == NULL)
     {
