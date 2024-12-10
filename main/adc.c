@@ -15,7 +15,7 @@ static bool IRAM_ATTR adc_conversion_done_callback(adc_continuous_handle_t adc_h
 
 
 // #define ADC_UNIT ADC_UNIT_1
-void adc_continuous_task(void* parameters)
+void adc_read_task(void* parameters)
 {
     static const char* const TAG = "ADC"; // tag for the ADC task
     ESP_LOGI(TAG, "Start ADC init task"); // log the start of the ADC task
@@ -26,14 +26,15 @@ void adc_continuous_task(void* parameters)
     uint32_t ret_num = 0; //  var to store the return number
 
     ESP_LOGI(TAG, "Memory allocation for frame buffer");
-    adc_digi_output_data_t* result = (adc_digi_output_data_t*)malloc(sizeof(adc_digi_output_data_t) * FRAME_LEN); // allocate memory for the frame buffer
+    adc_digi_output_data_t* result = (adc_digi_output_data_t*)calloc(FRAME_LEN, sizeof(adc_digi_output_data_t)); // allocate memory for the frame buffer
     if(result == NULL) ESP_LOGE(TAG, "Failed to allocate frame buffer memory"); 
-    memset(result, 0, sizeof(adc_digi_output_data_t) *FRAME_LEN); // fill the array with 0
+
+    uint16_t adc_vals[FRAME_LEN]; // array to store the ADC values
     
-    ESP_LOGI(TAG, "Memory allocation for conv buffer");
-    uint16_t* adc_buffer = (uint16_t*)malloc(sizeof(uint16_t) * BUF_SIZE); // allocate memory for the conv buffer
-    if(adc_buffer == NULL) ESP_LOGE(TAG, "Failed to allocate conv buffer memory"); 
-    memset(adc_buffer, 0, sizeof(uint16_t) * BUF_SIZE); // fill the buffer with 0
+    // ESP_LOGI(TAG, "Memory allocation for adc buffer");
+    // uint16_t* adc_buffer = (uint16_t*)malloc(sizeof(uint16_t) * BUF_SIZE); // allocate memory for the adc buffer
+    // if(adc_buffer == NULL) ESP_LOGE(TAG, "Failed to allocate adc buffer memory"); 
+    // memset(adc_buffer, 0, sizeof(uint16_t) * BUF_SIZE); // fill the buffer with 0
 
     adc_continuous_handle_t adc_handle;
 
@@ -97,14 +98,39 @@ void adc_continuous_task(void* parameters)
                 ESP_LOGI(TAG, "ADC data read successfully");
             #endif
 
-
-            framecount++;
-            if(framecount == FRAMES_PER_POOL)
+            for (int i = 0; i < FRAME_LEN; i++) 
             {
-                framecount = 0;
-                
-                
+                // add possible downscaling here
+                adc_vals[i] = result[i].type1.data; // store the result of the ADC conversion in the buffer
+
+                // adc_buffer[((FRAMES_PER_CONVERSION + framecount)*FRAME_LEN) + i] = result[i].type1.data; // store the result of the ADC conversion in the buffer
+            }          
+
+            if(xQueueSend(adc_queue_handle, adc_vals, 0) != pdTRUE) // send the ADC value to the queue
+            {
+                ESP_LOGE(TAG, "Failed to send ADC data to the queue");
             }
+
+
+
+            // if(framecount == FRAMES_PER_CONVERSION) // every 4 frames
+            // {
+            //     // freq = freq_reader(adc_buffer, BUF_SIZE); // call the freq_reader function
+            //     // printf("zero crossing: %u\n", freq); // print the zero crossing count
+                
+            //     framecount = 0; // reset the frame count
+            //     memcpy(adc_buffer, &adc_buffer[FRAME_LEN*FRAMES_PER_CONVERSION], sizeof(uint16_t) * FRAME_LEN*FRAMES_PER_CONVERSION); // shift the buffer by 4 frames
+            // }
+
+           
+
+            // framecount++;
+            // if(framecount == FRAMES_PER_POOL)
+            // {
+            //     framecount = 0;
+                
+                
+            // }
         }
     }   
 }

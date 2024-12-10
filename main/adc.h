@@ -6,7 +6,7 @@
 
 #include "main.h"
 
-#include "sdkconfig.h"
+// #include "sdkconfig.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -39,7 +39,7 @@
 
 
 
-void continuous_adc(void* parameters); 
+void adc_read_task(void* parameters); 
 
 
 #endif // ADC_H
