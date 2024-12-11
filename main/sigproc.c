@@ -5,6 +5,32 @@
 
 #define TAG "SIGPROC"
 
+uint16_t freq_analyzer(uint16_t* input_buf, uint16_t buf_len)
+{
+    float sum = 0;
+    uint16_t average = 0;
+    uint16_t zero_crossing = 0;
+    
+    for (int i = 0; i < buf_len; i++)
+    {
+        sum += input_buf[i];
+    }
+    average = (uint16_t)round(sum / buf_len);
+    printf("average: %u\t", average);
+    
+    // zero crossing
+    
+    for(int i = 0; i < buf_len; i++)
+    {
+        if(i != 0 && input_buf[i] > average && input_buf[i-1] < average) // check for zero crossing
+        {
+            zero_crossing++;
+        }
+    }
+    printf("zero crossing: %u\n", zero_crossing);
+    return zero_crossing;
+}
+
 void analog_to_freq_conversion_task(void* parameters)
 {
     // uint32_t sum = 0; // sum of the data buffer
@@ -14,13 +40,13 @@ void analog_to_freq_conversion_task(void* parameters)
     uint8_t kernel[KERNEL_SIZE]; // moving average kernel for convolution	    
     memset(kernel, 1, sizeof(uint8_t) * KERNEL_SIZE); // fill the kernel with 1
 
-    int16_t* input_buf = (int16_t*)malloc(sizeof(uint16_t) * BUF_SIZE); // allocate memory for the input buffer
+    uint16_t* input_buf = (uint16_t*)malloc(sizeof(uint16_t) * ADC_BUF_SIZE); // allocate memory for the input buffer
     if (input_buf == NULL) ESP_LOGE(TAG, "convolution buffer memory allocation failed");
-    memset(input_buf, 0, sizeof(uint16_t) * BUF_SIZE); // fill the buffer with 0
+    memset(input_buf, 0, sizeof(uint16_t) * ADC_BUF_SIZE); // fill the buffer with 0
     
-    uint16_t* conv_buf = (uint16_t*)malloc(sizeof(uint16_t) * BUF_SIZE); // allocate memory for the convolution buffer
+    uint16_t* conv_buf = (uint16_t*)malloc(sizeof(uint16_t) * ADC_BUF_SIZE); // allocate memory for the convolution buffer
     if (conv_buf == NULL) ESP_LOGE(TAG, "convolution buffer memory allocation failed");
-    memset(conv_buf, 0, sizeof(uint16_t) * BUF_SIZE); // fill the buffer with 0
+    memset(conv_buf, 0, sizeof(uint16_t) * ADC_BUF_SIZE); // fill the buffer with 0
 
 
 
@@ -46,12 +72,13 @@ void analog_to_freq_conversion_task(void* parameters)
     
     // if(gpio_get_level(BUTTON_GPIO))// read the GPIO level
     //     {
-    //         for(int i = 0; i < BUF_SIZE; i++)
+    //         for(int i = 0; i < ADC_BUF_SIZE; i++)
     //             {
     //                 printf("data: %u\n", data_buf[i]); // print the data buffer
     //             }
     //     } 
     // free(conv_buf); // free the convolution buffer
+
     
     while(1)
     {
@@ -61,23 +88,19 @@ void analog_to_freq_conversion_task(void* parameters)
         }
         else if(uxQueueMessagesWaiting(adc_queue_handle) >= FRAMES_PER_CONVERSION) // check the number of messages in the queue
         {
+            #if ADC_BUFFER_MULTIPLIER > 1
+                memcpy(input_buf, input_buf + (sizeof(uint16_t)*FRAME_SIZE), sizeof(uint16_t) * (ADC_BUF_SIZE - FRAME_SIZE)); // copy the convolution result to the input buffer
+            #endif
             for(int i = 0; i < FRAMES_PER_CONVERSION; i++)
             {
-                if(xQueueReceive(adc_queue_handle, input_buf + (FRAME_LEN*i), 0) != pdTRUE) // receive the data from the queue
+                if(xQueueReceive(adc_queue_handle, input_buf + (FRAME_SIZE*i), 0) != pdTRUE) // receive the data from the queue
                 {
                     ESP_LOGE(TAG, "Failed to receive data from the queue at frame %d", i);
                 }
             }
             
             // convertion happens here
-            float sum = 0;
-            for (int i = 0; i < BUF_SIZE; i++)
-            {
-                sum += input_buf[i];
-            }
-            printf("average: %f\n", sum/BUF_SIZE);
-            
-            
+            uint16_t zero_crossing = freq_analyzer(input_buf, ADC_BUF_SIZE); // convert the analog signal to frequency
         }
         else
         {

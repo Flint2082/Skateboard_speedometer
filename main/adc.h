@@ -27,15 +27,7 @@
 #define ADC_GET_CHANNEL(p_data)     ((p_data)->type1.channel)
 #define ADC_GET_DATA(p_data)        ((p_data)->type1.data)
 
-#define CHANNEL_NUM                 1
-#define ADC_CHANNEL                 ADC_CHANNEL_6
-#define READ_SPEED                  SOC_ADC_SAMPLE_FREQ_THRES_LOW // 20kHz
-#define POOL_SIZE                   2048
-#define FRAMES_PER_POOL             4
-#define FRAME_LEN                   (POOL_SIZE / FRAMES_PER_POOL)
-#define FRAMES_PER_CONVERSION       4
-#define ADC_BUFFER_MULTIPLIER       2
-#define BUF_SIZE                    (FRAME_LEN * FRAMES_PER_CONVERSION * ADC_BUFFER_MULTIPLIER)
+
 
 
 

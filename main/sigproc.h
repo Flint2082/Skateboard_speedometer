@@ -17,6 +17,8 @@
 #include "driver/gpio.h"
 
 
+
+
 void analog_to_freq_conversion_task(void* parameters); // function to convert the analog signal to frequency
 
 #endif // SIGPROC_H

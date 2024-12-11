@@ -13,8 +13,8 @@ QueueHandle_t IO_queue;                // global queue handle for the IO queue
 
 void app_main(void)
 {   
-    adc_queue_handle = xQueueCreate(            10,                 // queue length
-                                                sizeof(uint16_t)*FRAME_LEN);    // queue item size
+    adc_queue_handle = xQueueCreate(            FRAMES_PER_CONVERSION * 2,                 // queue length
+                                                sizeof(uint16_t) * FRAME_SIZE / ADC_DOWN_SCALE);    // queue item size
 
     // Create the ADC task
     BaseType_t adc_task_status = xTaskCreate(
