@@ -1,35 +1,16 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C5 | ESP32-C6 | ESP32-H2 | ESP32-P4 | ESP32-S2 | ESP32-S3 |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | -------- | -------- | -------- | -------- |
 
-# _Sample project_
+# Skateboard Speedometer
+In this project i will be comparing different ways to measure the speed of a skateboard. I will be using a ESP32 microcontroller. I will compare the following methods: 
+- Using reflective sensor on the wheel
+- Using a GPS module
+- Using a IMU sensor
+- Using a smart combination of GPS and IMU
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+## Reflective sensor
+The reflective sensor will be placed on the wheel of the skateboard. The sensor will be able to detect the speed of the wheel by counting the amount of times the signal oscillates. The speed of the skateboard can be calculated by multiplying the speed of the wheel by the diameter of the wheel.
 
-This is the simplest buildable example. The example is used by command `idf.py create-project`
-that copies the project to user specified path and set it's name. For more information follow the [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project)
+## GPS module
+The GPS module will give location data. By calculating the distance between two points and dividing it by the time it took to travel between the two points, the speed can be calculated.
 
-
-
-## How to use example
-We encourage the users to use the example as a template for the new projects.
-A recommended way is to follow the instructions on a [docs page](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/build-system.html#start-a-new-project).
-
-## Example folder contents
-
-The project **sample_project** contains one source file in C language [main.c](main/main.c). The file is located in folder [main](main).
-
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt`
-files that provide set of directives and instructions describing the project's source files and targets
-(executable, library, or both). 
-
-Below is short explanation of remaining files in the project folder.
-
-```
-├── CMakeLists.txt
-├── main
-│   ├── CMakeLists.txt
-│   └── main.c
-└── README.md                  This is the file you are currently reading
-```
-Additionally, the sample project contains Makefile and component.mk files, used for the legacy Make based build system. 
-They are not used or needed when building with CMake and idf.py.
+## IMU sensor
+The IMU sensor will give acceleration data. By integrating the acceleration data, the speed can be calculated.
