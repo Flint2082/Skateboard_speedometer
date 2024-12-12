@@ -16,7 +16,7 @@
 #include "esp_adc/adc_continuous.h"
 
 // Real world values
-#define WHEEL_DIAMETER 0.072 // Wheel diameter in meters
+#define WHEEL_DIAMETER 0.078f // Wheel diameter in meters
 
 
 // Defines
@@ -32,7 +32,9 @@
 #define FRAMES_PER_CONVERSION       4
 #define ADC_BUFFER_MULTIPLIER       2
 #define ADC_DOWN_SCALE              8
-#define ADC_BUF_SIZE                ((FRAME_SIZE * FRAMES_PER_CONVERSION * ADC_BUFFER_MULTIPLIER)/ADC_DOWN_SCALE) 
+#define DS_FRAME_SIZE               (FRAME_SIZE / ADC_DOWN_SCALE)
+#define ADC_BUF_SIZE                ((FRAME_SIZE * FRAMES_PER_CONVERSION * ADC_BUFFER_MULTIPLIER) / ADC_DOWN_SCALE) 
+#define ADC_CONV_PERIOD             ((float)(FRAME_SIZE * FRAMES_PER_CONVERSION) / READ_SPEED)
 
 // Global variables
 extern TaskHandle_t adc_task_handle; // global task handle for the ADC task

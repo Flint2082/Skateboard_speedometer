@@ -27,7 +27,13 @@ uint16_t freq_analyzer(uint16_t* input_buf, uint16_t buf_len)
             zero_crossing++;
         }
     }
-    printf("zero crossing: %u\n", zero_crossing);
+    printf("zero crossing: %u\t", zero_crossing);
+
+    printf("period: %f\t", ADC_CONV_PERIOD); // print the period
+
+    float freq = (float)zero_crossing / ADC_CONV_PERIOD;
+    printf("freq: %u\n", (uint16_t)round(freq)); // print the frequency
+
     return zero_crossing;
 }
 
@@ -89,11 +95,11 @@ void analog_to_freq_conversion_task(void* parameters)
         else if(uxQueueMessagesWaiting(adc_queue_handle) >= FRAMES_PER_CONVERSION) // check the number of messages in the queue
         {
             #if ADC_BUFFER_MULTIPLIER > 1
-                memcpy(input_buf, input_buf + (sizeof(uint16_t)*FRAME_SIZE), sizeof(uint16_t) * (ADC_BUF_SIZE - FRAME_SIZE)); // copy the convolution result to the input buffer
+                memcpy(input_buf, input_buf + DS_FRAME_SIZE, sizeof(uint16_t) * (ADC_BUF_SIZE - DS_FRAME_SIZE)); // copy the convolution result to the input buffer
             #endif
-            for(int i = 0; i < FRAMES_PER_CONVERSION; i++)
+            for (int i = 0; i < FRAMES_PER_CONVERSION; i++)
             {
-                if(xQueueReceive(adc_queue_handle, input_buf + (FRAME_SIZE*i), 0) != pdTRUE) // receive the data from the queue
+                if (xQueueReceive(adc_queue_handle, input_buf + (DS_FRAME_SIZE * i), 0) != pdTRUE) // receive the data from the queue
                 {
                     ESP_LOGE(TAG, "Failed to receive data from the queue at frame %d", i);
                 }
