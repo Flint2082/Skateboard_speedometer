@@ -29,7 +29,7 @@ void adc_read_task(void* parameters)
     adc_digi_output_data_t* result = (adc_digi_output_data_t*)calloc(FRAME_SIZE, sizeof(adc_digi_output_data_t)); // allocate memory for the frame buffer
     if(result == NULL) ESP_LOGE(TAG, "Failed to allocate frame buffer memory"); 
 
-    uint16_t adc_vals[FRAME_SIZE/ADC_DOWN_SCALE]; // array to store the ADC values
+    uint16_t adc_ds_vals[DS_FRAME_SIZE]; // array to store the ADC values
 
 
     adc_continuous_handle_t adc_handle;
@@ -41,7 +41,7 @@ void adc_read_task(void* parameters)
     ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &adc_handle)); // create a new handle for the ADC continuous mode driver
 
     adc_continuous_config_t dig_cfg = {
-        .sample_freq_hz = READ_SPEED,       // Sampling frequency
+        .sample_freq_hz = READ_SPEED * ADC_SPEED_COMPENSATION,       // Sampling frequency
         .conv_mode      = ADC_CONV_MODE,    // Conversion mode
         .format         = ADC_OUTPUT_TYPE,  // Output format
         .pattern_num    = CHANNEL_NUM,      // Number of patterns
@@ -70,13 +70,7 @@ void adc_read_task(void* parameters)
 
     while(1)
     {
-        #ifdef DEBUG 
-            ESP_LOGI(TAG, "Waiting for ADC data ready");
-        #endif
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // block the task until the notification is received    
-        #ifdef DEBUG            
-    	    ESP_LOGI(TAG, "ADC data ready");
-        #endif 
 
         ret = adc_continuous_read(adc_handle, (uint8_t*)result, sizeof(uint16_t)*FRAME_SIZE, &ret_num, 0);
         if(ret != ESP_OK)
@@ -86,18 +80,23 @@ void adc_read_task(void* parameters)
         else
         {
             #ifdef DEBUG
-                ESP_LOGI(TAG, "ADC data read successfully");
+            ESP_LOGI(TAG, "Read %lu bytes of data", ret_num);
             #endif
 
-            for (int i = 0; i < FRAME_SIZE; i++) 
+            for (uint16_t i = 0; i < FRAME_SIZE; i++) 
             {
-                // Downscale the ADC data (room for averaging optimization)
+                // Downscale the ADC data 
                 if(i % ADC_DOWN_SCALE == 0)
                 {
-                    adc_vals[i/ADC_DOWN_SCALE] = result[i].type1.data; // store the result of the ADC conversion in the buffer
+                    uint32_t sum = 0;
+                    for(uint16_t j = 0; j < ADC_DOWN_SCALE; j++)
+                    {
+                        sum += result[i+j].type1.data;
+                    }    
+                    adc_ds_vals[i/ADC_DOWN_SCALE] = sum / ADC_DOWN_SCALE; // store the result of the ADC conversion in the buffer
                 }
             }          
-            if(xQueueSend(adc_queue_handle, adc_vals, 0) != pdTRUE) // send the ADC value to the queue
+            if(xQueueSend(adc_queue_handle, adc_ds_vals, 0) != pdTRUE) // send the ADC value to the queue
             {
                 ESP_LOGE(TAG, "Failed to send ADC data to the queue");
             }

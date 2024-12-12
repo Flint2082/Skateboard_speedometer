@@ -16,10 +16,9 @@ uint16_t freq_analyzer(uint16_t* input_buf, uint16_t buf_len)
         sum += input_buf[i];
     }
     average = (uint16_t)round(sum / buf_len);
-    printf("average: %u\t", average);
+    // printf("average: %u\t", average);
     
-    // zero crossing
-    
+    // zero crossing detection
     for(int i = 0; i < buf_len; i++)
     {
         if(i != 0 && input_buf[i] > average && input_buf[i-1] < average) // check for zero crossing
@@ -27,22 +26,42 @@ uint16_t freq_analyzer(uint16_t* input_buf, uint16_t buf_len)
             zero_crossing++;
         }
     }
-    printf("zero crossing: %u\t", zero_crossing);
+    float freq = (float)zero_crossing / (ADC_CONV_PERIOD*ADC_BUFFER_MULTIPLIER); // calculate the frequency
 
-    printf("period: %f\t", ADC_CONV_PERIOD); // print the period
+    uint32_t time_us = 0;
+    uint32_t resolution = 1;
+    gptimer_get_raw_count(glob_tim_handle, &time_us); // get the timer count
+    gptimer_get_resolution(glob_tim_handle, &resolution); // get the timer resolution
 
-    float freq = (float)zero_crossing / ADC_CONV_PERIOD;
+    printf("zero crossing: %u\t", zero_crossing); // print the zero crossing
+    printf("period expected: %f\t", ADC_CONV_PERIOD); // print the period
+    printf("period actual: %f\t", (float)time_us/(float)resolution); // print the period
     printf("freq: %u\n", (uint16_t)round(freq)); // print the frequency
+    // uint16_t buffer_debug[buf_len/64];
+    // for(int i = 0; i < buf_len/64; i++)
+    // {
+    //     buffer_debug[i] = input_buf[i*64];
+    // }
+
+
+    // if(gpio_get_level(BUTTON_GPIO) > 0)
+    // {
+    //     for(int i = 0; i < buf_len; i+= 100)
+    //     {
+            
+    //         // printf("%u\n", input_buf[i]);
+    //         // vTaskDelay(1 / portTICK_PERIOD_MS);
+    //     }
+    // }
+    // buffer_debug[1000] = buffer_debug[1001];
+
+    gptimer_set_raw_count(glob_tim_handle, 0); // reset the timer
 
     return zero_crossing;
 }
 
 void analog_to_freq_conversion_task(void* parameters)
 {
-    // uint32_t sum = 0; // sum of the data buffer
-    // uint16_t average = 0; // average of the data buffer
-    // uint16_t zero_crossing = 0; // zero crossing count
-
     uint8_t kernel[KERNEL_SIZE]; // moving average kernel for convolution	    
     memset(kernel, 1, sizeof(uint8_t) * KERNEL_SIZE); // fill the kernel with 1
 
@@ -53,37 +72,6 @@ void analog_to_freq_conversion_task(void* parameters)
     uint16_t* conv_buf = (uint16_t*)malloc(sizeof(uint16_t) * ADC_BUF_SIZE); // allocate memory for the convolution buffer
     if (conv_buf == NULL) ESP_LOGE(TAG, "convolution buffer memory allocation failed");
     memset(conv_buf, 0, sizeof(uint16_t) * ADC_BUF_SIZE); // fill the buffer with 0
-
-
-
-    // for (int i = 0; i < buf_len - KERNEL_SIZE-1; i++)
-    // {
-    //     for(int j = 0; j < KERNEL_SIZE; j++)
-    //     {
-    //         conv_buf[i] += data_buf[i + j] * kernel[j];
-    //     }  
-    //     conv_buf[i] = conv_buf[i] >> 6; // divide by 64
-    //     sum += conv_buf[i];
-    // }
-    // average = sum / (buf_len - KERNEL_SIZE - 1); // calculate the average of the data buffer
-    // for(int i = 0; i < buf_len; i++)
-    // {
-    //     if(i != 0 && conv_buf[i] > average && conv_buf[i-1] < average) // check for zero crossing
-    //     {
-    //         zero_crossing++;
-    //     }
-    // }
-
-    // memcpy(data_buf, conv_buf, sizeof(uint16_t) * buf_len); // copy the convolution result to the data buffer
-    
-    // if(gpio_get_level(BUTTON_GPIO))// read the GPIO level
-    //     {
-    //         for(int i = 0; i < ADC_BUF_SIZE; i++)
-    //             {
-    //                 printf("data: %u\n", data_buf[i]); // print the data buffer
-    //             }
-    //     } 
-    // free(conv_buf); // free the convolution buffer
 
     
     while(1)
@@ -99,7 +87,7 @@ void analog_to_freq_conversion_task(void* parameters)
             #endif
             for (int i = 0; i < FRAMES_PER_CONVERSION; i++)
             {
-                if (xQueueReceive(adc_queue_handle, input_buf + (DS_FRAME_SIZE * i), 0) != pdTRUE) // receive the data from the queue
+                if (xQueueReceive(adc_queue_handle, input_buf + (ADC_BUF_SIZE - (DS_FRAME_SIZE*FRAMES_PER_CONVERSION)) + (DS_FRAME_SIZE * i), 0) != pdTRUE) // receive the data from the queue
                 {
                     ESP_LOGE(TAG, "Failed to receive data from the queue at frame %d", i);
                 }

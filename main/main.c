@@ -4,6 +4,7 @@
 
 static const char *TAG = "MAIN"; 
 
+gptimer_handle_t glob_tim_handle = NULL;      // global timer handle
 TaskHandle_t adc_task_handle;         // global task handle for the ADC task
 TaskHandle_t conversion_task_handle;  // global task handle for the conversion task
 TaskHandle_t IO_task_handle;          // global task handle for the IO task
@@ -13,8 +14,31 @@ QueueHandle_t IO_queue;                // global queue handle for the IO queue
 
 void app_main(void)
 {   
-    adc_queue_handle = xQueueCreate(            FRAMES_PER_CONVERSION * 2,                 // queue length
-                                                sizeof(uint16_t) * FRAME_SIZE / ADC_DOWN_SCALE);    // queue item size
+    // configure the GPIO
+    gpio_config_t io_conf;                          // GPIO config struct
+    io_conf.pin_bit_mask = (1ULL << BUTTON_GPIO);   // set the GPIO pin mask
+    io_conf.mode = GPIO_MODE_INPUT;                 // set the GPIO mode to input
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;        // disable the pull up resistor  
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;   // disable the pull down resistor
+    io_conf.intr_type = GPIO_INTR_DISABLE;          // disable the GPIO interrupt
+    gpio_config(&io_conf);                          // configure the GPIO
+
+    // Configure Timer
+    gptimer_config_t timer_config = {
+        .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+        .direction = GPTIMER_COUNT_UP,
+        .resolution_hz = 1 * 1000 * 1000, // 1MHz, 1 tick = 1us
+        
+    };
+    ESP_ERROR_CHECK(gptimer_new_timer(&timer_config, &glob_tim_handle));
+    ESP_ERROR_CHECK(gptimer_enable(glob_tim_handle));
+    ESP_ERROR_CHECK(gptimer_start(glob_tim_handle));
+
+
+    /// FreeRTOS initialization ///
+
+    adc_queue_handle = xQueueCreate(            FRAMES_PER_CONVERSION,                 // queue length
+                                                sizeof(uint16_t) * DS_FRAME_SIZE);    // queue item size
 
     // Create the ADC task
     BaseType_t adc_task_status = xTaskCreate(
@@ -60,14 +84,7 @@ void app_main(void)
     //                                             sizeof(uint16_t));    // queue item size
 
 
-    // configure the GPIO
-    gpio_config_t io_conf;                          // GPIO config struct
-    io_conf.pin_bit_mask = (1ULL << BUTTON_GPIO);   // set the GPIO pin mask
-    io_conf.mode = GPIO_MODE_INPUT;                 // set the GPIO mode to input
-    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;        // disable the pull up resistor  
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;   // disable the pull down resistor
-    io_conf.intr_type = GPIO_INTR_DISABLE;          // disable the GPIO interrupt
-    gpio_config(&io_conf);                          // configure the GPIO
+
 
     vTaskDelete(NULL); // delete the main task
 }
