@@ -1,6 +1,5 @@
 #include "sigproc.h"
 
-#define KERNEL_SIZE 10  // kernel size for convolution
 
 
 #define TAG "SIGPROC"
@@ -13,6 +12,9 @@ float freq_analyzer(uint16_t* input_buf, uint16_t buf_len)
     uint16_t zero_crossing = 0;
     float avg_period = 0;
     uint16_t prev_cross = 0;
+    float freq = 0;
+    bool schmitt_trigger = SCHMITT_LOW;   // schmitt trigger for zero crossing detection
+    bool schmitt_trigger_prev = SCHMITT_LOW;   
 
     // average filter and calculate mean
     for (int i = 0; i < buf_len - KERNEL_SIZE; i++)
@@ -28,9 +30,18 @@ float freq_analyzer(uint16_t* input_buf, uint16_t buf_len)
     // printf("average: %u\t", average);
 
     // zero crossing detection
-    for(int i = 0; i < buf_len - KERNEL_SIZE; i++)
+    for(int i = 1; i < buf_len - KERNEL_SIZE; i++)
     {
-        if(i != 0 && input_buf[i] > average && input_buf[i-1] <= average) // check for zero crossing
+        if(schmitt_trigger == SCHMITT_LOW && input_buf[i] > average + SCHMITT_TRIGGER) // schmitt trigger for zero crossing detection
+        {
+            schmitt_trigger = SCHMITT_HIGH;
+        }
+        else if(schmitt_trigger == SCHMITT_HIGH && input_buf[i] < average - SCHMITT_TRIGGER)
+        {
+            schmitt_trigger = SCHMITT_LOW;
+        }
+        
+        if(schmitt_trigger == SCHMITT_LOW && schmitt_trigger_prev == SCHMITT_HIGH) // check for zero crossing
         {
             zero_crossing++;
             if(zero_crossing > 1)// calculate the period
@@ -40,14 +51,17 @@ float freq_analyzer(uint16_t* input_buf, uint16_t buf_len)
             }    
             prev_cross = i;
         }
+        schmitt_trigger_prev = schmitt_trigger;
     }
     if (zero_crossing > 1) {
         avg_period /= zero_crossing - 1; // calculate the average period (minus the first zero crossing)
+        freq = (float)READ_SPEED / ((float)avg_period * ADC_DOWN_SCALE); // calculate the frequency
     } else {
         avg_period = 0; // handle the case where zero_crossing is 1 or less
+        freq = 0;
     }
     
-    float freq = (float)READ_SPEED / ((float)avg_period * ADC_DOWN_SCALE); // calculate the frequency
+    
 
     // printf("zero crossing: %u\t", zero_crossing); // print the zero crossing
     // printf("avg period: %f\t", avg_period); // print the average period
@@ -89,7 +103,8 @@ void analog_to_freq_conversion_task(void* parameters)
             float speed = frequency * WHEEL_DIAMETER * M_PI; // calculate the speed    
 
             printf("frequency: %f\t", frequency); // print the frequency
-            printf("speed: %f\n", speed); // print the speed
+            printf("speed m/s: %f\t", speed); // print the speed in m/s
+            printf("speed km/h: %f\n", speed * 3.6); // print the speed in km/h
         }
         else
         {
