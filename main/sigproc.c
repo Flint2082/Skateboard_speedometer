@@ -5,73 +5,64 @@
 
 #define TAG "SIGPROC"
 
-uint16_t freq_analyzer(uint16_t* input_buf, uint16_t buf_len)
+float freq_analyzer(uint16_t* input_buf, uint16_t buf_len)
 {
+
     float sum = 0;
     uint16_t average = 0;
     uint16_t zero_crossing = 0;
-    
-    for (int i = 0; i < buf_len; i++)
+    float avg_period = 0;
+    uint16_t prev_cross = 0;
+
+    // average filter and calculate mean
+    for (int i = 0; i < buf_len - KERNEL_SIZE; i++)
     {
         sum += input_buf[i];
+        for (int j = 1; j < KERNEL_SIZE; j++)
+        {
+            input_buf[i] += input_buf[i + j];
+        }
+        input_buf[i] /= KERNEL_SIZE;
     }
     average = (uint16_t)round(sum / buf_len);
     // printf("average: %u\t", average);
-    
+
     // zero crossing detection
-    for(int i = 0; i < buf_len; i++)
+    for(int i = 0; i < buf_len - KERNEL_SIZE; i++)
     {
-        if(i != 0 && input_buf[i] > average && input_buf[i-1] < average) // check for zero crossing
+        if(i != 0 && input_buf[i] > average && input_buf[i-1] <= average) // check for zero crossing
         {
             zero_crossing++;
+            if(zero_crossing > 1)// calculate the period
+            { 
+                avg_period += i - prev_cross;
+                // printf("zero crossing at: %d with a period of: %d\n", i, i - prev_cross);
+            }    
+            prev_cross = i;
         }
     }
-    float freq = (float)zero_crossing / (ADC_CONV_PERIOD*ADC_BUFFER_MULTIPLIER); // calculate the frequency
+    if (zero_crossing > 1) {
+        avg_period /= zero_crossing - 1; // calculate the average period (minus the first zero crossing)
+    } else {
+        avg_period = 0; // handle the case where zero_crossing is 1 or less
+    }
+    
+    float freq = (float)READ_SPEED / ((float)avg_period * ADC_DOWN_SCALE); // calculate the frequency
 
-    uint32_t time_us = 0;
-    uint32_t resolution = 1;
-    gptimer_get_raw_count(glob_tim_handle, &time_us); // get the timer count
-    gptimer_get_resolution(glob_tim_handle, &resolution); // get the timer resolution
+    // printf("zero crossing: %u\t", zero_crossing); // print the zero crossing
+    // printf("avg period: %f\t", avg_period); // print the average period
+    // printf("freq from period: %f\n", freq); // print the frequency
 
-    printf("zero crossing: %u\t", zero_crossing); // print the zero crossing
-    printf("period expected: %f\t", ADC_CONV_PERIOD); // print the period
-    printf("period actual: %f\t", (float)time_us/(float)resolution); // print the period
-    printf("freq: %u\n", (uint16_t)round(freq)); // print the frequency
-    // uint16_t buffer_debug[buf_len/64];
-    // for(int i = 0; i < buf_len/64; i++)
-    // {
-    //     buffer_debug[i] = input_buf[i*64];
-    // }
-
-
-    // if(gpio_get_level(BUTTON_GPIO) > 0)
-    // {
-    //     for(int i = 0; i < buf_len; i+= 100)
-    //     {
-            
-    //         // printf("%u\n", input_buf[i]);
-    //         // vTaskDelay(1 / portTICK_PERIOD_MS);
-    //     }
-    // }
-    // buffer_debug[1000] = buffer_debug[1001];
-
-    gptimer_set_raw_count(glob_tim_handle, 0); // reset the timer
-
-    return zero_crossing;
+    return freq;
 }
 
 void analog_to_freq_conversion_task(void* parameters)
 {
-    uint8_t kernel[KERNEL_SIZE]; // moving average kernel for convolution	    
-    memset(kernel, 1, sizeof(uint8_t) * KERNEL_SIZE); // fill the kernel with 1
-
     uint16_t* input_buf = (uint16_t*)malloc(sizeof(uint16_t) * ADC_BUF_SIZE); // allocate memory for the input buffer
     if (input_buf == NULL) ESP_LOGE(TAG, "convolution buffer memory allocation failed");
     memset(input_buf, 0, sizeof(uint16_t) * ADC_BUF_SIZE); // fill the buffer with 0
     
-    uint16_t* conv_buf = (uint16_t*)malloc(sizeof(uint16_t) * ADC_BUF_SIZE); // allocate memory for the convolution buffer
-    if (conv_buf == NULL) ESP_LOGE(TAG, "convolution buffer memory allocation failed");
-    memset(conv_buf, 0, sizeof(uint16_t) * ADC_BUF_SIZE); // fill the buffer with 0
+    
 
     
     while(1)
@@ -94,7 +85,11 @@ void analog_to_freq_conversion_task(void* parameters)
             }
             
             // convertion happens here
-            uint16_t zero_crossing = freq_analyzer(input_buf, ADC_BUF_SIZE); // convert the analog signal to frequency
+            float frequency = freq_analyzer(input_buf, ADC_BUF_SIZE); // convert the analog signal to frequency
+            float speed = frequency * WHEEL_DIAMETER * M_PI; // calculate the speed    
+
+            printf("frequency: %f\t", frequency); // print the frequency
+            printf("speed: %f\n", speed); // print the speed
         }
         else
         {

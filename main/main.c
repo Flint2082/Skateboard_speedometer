@@ -44,7 +44,7 @@ void app_main(void)
     BaseType_t adc_task_status = xTaskCreate(
         adc_read_task,      // task function
         "adc_task",         // task name
-        4096,               // stack depth
+        8192,               // stack depth
         NULL,               // task parameters
         ADC_TASK_PRIORITY,  // task priority
         &adc_task_handle    // pointer to store the task handle
