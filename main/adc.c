@@ -28,9 +28,9 @@ void adc_read_task(void* parameters)
     ESP_LOGI(TAG, "Memory allocation for frame buffer");
     adc_digi_output_data_t* result = (adc_digi_output_data_t*)calloc(FRAME_SIZE, sizeof(adc_digi_output_data_t)); // allocate memory for the frame buffer
     if(result == NULL) ESP_LOGE(TAG, "Failed to allocate frame buffer memory"); 
-
-    uint16_t adc_ds_vals[DS_FRAME_SIZE]; // array to store the ADC values
-
+    
+    adc_data_t adc_data; // create a data structure to store the ADC data
+    adc_data.timestamp = 0; // store the timestamp
 
     adc_continuous_handle_t adc_handle;
 
@@ -67,11 +67,15 @@ void adc_read_task(void* parameters)
     };
     ESP_ERROR_CHECK(adc_continuous_register_event_callbacks(adc_handle, &cbs, NULL)); 
     ESP_ERROR_CHECK(adc_continuous_start(adc_handle)); // start the ADC continuous mode driver
+    
+    #ifdef DEBUG
+    ESP_LOGI(TAG, "ADC continuous mode driver started");
+    #endif
 
     while(1)
     {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // block the task until the notification is received    
-
+        
         ret = adc_continuous_read(adc_handle, (uint8_t*)result, sizeof(uint16_t)*FRAME_SIZE, &ret_num, 0);
         if(ret != ESP_OK)
         {
@@ -81,6 +85,17 @@ void adc_read_task(void* parameters)
         {
             #ifdef DEBUG
             ESP_LOGI(TAG, "Read %lu bytes of data", ret_num);
+            #endif
+
+            uint64_t time_raw = 0;
+            ret = gptimer_get_raw_count(glob_tim_handle, &time_raw); // get the timestamp
+            if(ret != ESP_OK) ESP_LOGE(TAG, "Failed to get the raw count");
+            adc_data.timestamp = (float)time_raw; // convert the timestamp to seconds
+            adc_data.timestamp /= TIMER_RESOLUTION; // convert the timestamp to seconds
+
+            #ifdef DEBUG
+            ESP_LOGI(TAG, "Timestamp: %llu", time_raw);
+            ESP_LOGI(TAG, "Timestamp: %f", adc_data.timestamp);
             #endif
 
             for (uint16_t i = 0; i < FRAME_SIZE; i++) 
@@ -93,10 +108,10 @@ void adc_read_task(void* parameters)
                     {
                         sum += result[i+j].type1.data;
                     }    
-                    adc_ds_vals[i/ADC_DOWN_SCALE] = sum / ADC_DOWN_SCALE; // store the result of the ADC conversion in the buffer
+                    adc_data.adc_ds_vals[i/ADC_DOWN_SCALE] = sum / ADC_DOWN_SCALE; // store the result of the ADC conversion in the buffer
                 }
             }          
-            if(xQueueSend(adc_queue_handle, adc_ds_vals, 0) != pdTRUE) // send the ADC value to the queue
+            if(xQueueSend(adc_queue_handle, &adc_data, 0) != pdTRUE) // send the ADC value to the queue
             {
                 ESP_LOGE(TAG, "Failed to send ADC data to the queue");
             }

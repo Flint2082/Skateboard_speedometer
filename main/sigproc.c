@@ -75,9 +75,12 @@ void analog_to_freq_conversion_task(void* parameters)
     uint16_t* input_buf = (uint16_t*)malloc(sizeof(uint16_t) * ADC_BUF_SIZE); // allocate memory for the input buffer
     if (input_buf == NULL) ESP_LOGE(TAG, "convolution buffer memory allocation failed");
     memset(input_buf, 0, sizeof(uint16_t) * ADC_BUF_SIZE); // fill the buffer with 0
-    
-    
 
+    data_t speed_data = { // create a data structure to store the speed data
+                .speed = 0, // store the speed
+                .timestamp = 0, // store the timestamp
+                .sensor_label = REFLECTIVE_SENSOR, // store the sensor label
+            };
     
     while(1)
     {
@@ -92,19 +95,28 @@ void analog_to_freq_conversion_task(void* parameters)
             #endif
             for (int i = 0; i < FRAMES_PER_CONVERSION; i++)
             {
-                if (xQueueReceive(adc_queue_handle, input_buf + (ADC_BUF_SIZE - (DS_FRAME_SIZE*FRAMES_PER_CONVERSION)) + (DS_FRAME_SIZE * i), 0) != pdTRUE) // receive the data from the queue
-                {
-                    ESP_LOGE(TAG, "Failed to receive data from the queue at frame %d", i);
-                }
+                adc_data_t* queue_buf = (adc_data_t*)malloc(sizeof(adc_data_t)); // allocate memory for the queue buffer
+                if (queue_buf == NULL) ESP_LOGE(TAG, "queue buffer memory allocation failed");
+
+                if (xQueueReceive(adc_queue_handle, queue_buf, 0) != pdTRUE) ESP_LOGE(TAG, "Failed to receive data from the queue at frame %d", i);
+                memcpy(input_buf + (ADC_BUF_SIZE - (DS_FRAME_SIZE*FRAMES_PER_CONVERSION)) + (DS_FRAME_SIZE * i), queue_buf->adc_ds_vals, sizeof(uint16_t) * DS_FRAME_SIZE); // copy the data to the input buffer
+            
+                speed_data.timestamp = queue_buf->timestamp; // store the timestamp
+
+                free(queue_buf); // free the memory allocated for the queue buffer
             }
             
             // convertion happens here
             float frequency = freq_analyzer(input_buf, ADC_BUF_SIZE); // convert the analog signal to frequency
-            float speed = frequency * WHEEL_DIAMETER * M_PI; // calculate the speed    
+            float speed = frequency * WHEEL_DIAMETER * M_PI * 3.6; // calculate the speed    
+        
+            
+            speed_data.speed = speed; // store the speed
+            
+            printf("label: %d\t timestamp: %f\t speed: %f\n", speed_data.sensor_label, speed_data.timestamp ,speed_data.speed);
 
-            printf("frequency: %f\t", frequency); // print the frequency
-            printf("speed m/s: %f\t", speed); // print the speed in m/s
-            printf("speed km/h: %f\n", speed * 3.6); // print the speed in km/h
+
+            xQueueSend(data_log_queue_handle, &speed_data, 0); // send the data to the data logging task
         }
         else
         {
