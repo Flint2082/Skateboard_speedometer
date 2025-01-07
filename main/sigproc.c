@@ -91,7 +91,10 @@ void analog_to_freq_conversion_task(void* parameters)
         else if(uxQueueMessagesWaiting(adc_queue_handle) >= FRAMES_PER_CONVERSION) // check the number of messages in the queue
         {
             #if ADC_BUFFER_MULTIPLIER > 1
-                memcpy(input_buf, input_buf + DS_FRAME_SIZE, sizeof(uint16_t) * (ADC_BUF_SIZE - DS_FRAME_SIZE)); // copy the convolution result to the input buffer
+                // memcpy(input_buf, input_buf + (sizeof(uint16_t) * DS_FRAME_SIZE), sizeof(uint16_t) * (ADC_BUF_SIZE - (DS_FRAME_SIZE * FRAMES_PER_CONVERSION))); // copy the convolution result to the input buffer
+                //memcpy(input_buf, input_buf +(sizeof(uint16_t)*DS_FRAME_SIZE * FRAMES_PER_CONVERSION), sizeof(uint16_t) * DS_FRAME_SIZE * FRAMES_PER_CONVERSION); // copy the convolution result to the input buffer
+                // memmove(input_buf, input_buf + (DS_FRAME_SIZE * FRAMES_PER_CONVERSION), sizeof(uint16_t) * DS_FRAME_SIZE * FRAMES_PER_CONVERSION);
+                memmove(input_buf, input_buf + (DS_FRAME_SIZE * FRAMES_PER_CONVERSION), sizeof(uint16_t) * (ADC_BUF_SIZE - (DS_FRAME_SIZE * FRAMES_PER_CONVERSION)));
             #endif
             for (int i = 0; i < FRAMES_PER_CONVERSION; i++)
             {

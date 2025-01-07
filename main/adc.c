@@ -49,7 +49,7 @@ void adc_read_task(void* parameters)
 
     adc_digi_pattern_config_t adc_pattern = {
         .atten      = ADC_ATTEN,        // attenuation
-        .channel    = ADC_CHANNEL & 0x7, // channel number
+        .channel    = ADC_CHANNEL & 0x7, // channel number      (why the & 0x7?)
         .unit       = ADC_UNIT,         // ADC unit
         .bit_width  = ADC_BIT_WIDTH,    // bit width
     };

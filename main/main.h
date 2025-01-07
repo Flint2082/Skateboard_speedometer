@@ -30,8 +30,8 @@
 #define LED_GPIO 4 // GPIO pin for the LED  
 
 // ADC defines
-#define ADC_SPEED_COMPENSATION      1.222 // Because of a bug in the ESP32 ADC driver (https://github.com/espressif/esp-idf/issues/10612)
-#define READ_SPEED                  (20 * 1000) //SOC_ADC_SAMPLE_FREQ_THRES_LOW // 20kHz
+#define ADC_SPEED_COMPENSATION      1.2185 // was 1.222  -->  Because of a bug in the ESP32 ADC driver (https://github.com/espressif/esp-idf/issues/10612)
+#define READ_SPEED                  (40 * 1000) //SOC_ADC_SAMPLE_FREQ_THRES_LOW // 20kHz
 
 #define CHANNEL_NUM                 1
 #define ADC_CHANNEL                 ADC_CHANNEL_6
@@ -39,7 +39,7 @@
 #define FRAMES_PER_POOL             (FRAMES_PER_CONVERSION * 1)
 #define FRAME_SIZE                  2048 // was 2048
 #define FRAMES_PER_CONVERSION       4
-#define ADC_BUFFER_MULTIPLIER       1
+#define ADC_BUFFER_MULTIPLIER       4 // how much to overlap the ADC buffer (more creates a lower min frequency but averages the results over time)
 #define ADC_DOWN_SCALE              8 // has to be a power of 2
 #define DS_FRAME_SIZE               (FRAME_SIZE / ADC_DOWN_SCALE)
 #define ADC_BUF_SIZE                ((FRAME_SIZE * FRAMES_PER_CONVERSION * ADC_BUFFER_MULTIPLIER) / ADC_DOWN_SCALE) 
