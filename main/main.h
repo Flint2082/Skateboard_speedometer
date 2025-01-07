@@ -30,7 +30,7 @@
 #define LED_GPIO 4 // GPIO pin for the LED  
 
 // ADC defines
-#define ADC_SPEED_COMPENSATION      1.2206 // Because of a bug in the ESP32 ADC driver (https://github.com/espressif/esp-idf/issues/10612)
+#define ADC_SPEED_COMPENSATION      1.222 // Because of a bug in the ESP32 ADC driver (https://github.com/espressif/esp-idf/issues/10612)
 #define READ_SPEED                  (20 * 1000) //SOC_ADC_SAMPLE_FREQ_THRES_LOW // 20kHz
 
 #define CHANNEL_NUM                 1
