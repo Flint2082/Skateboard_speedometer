@@ -110,12 +110,10 @@ void analog_to_freq_conversion_task(void* parameters)
             float frequency = freq_analyzer(input_buf, ADC_BUF_SIZE); // convert the analog signal to frequency
             float speed = frequency * WHEEL_DIAMETER * M_PI * 3.6; // calculate the speed    
         
-            
             speed_data.speed = speed; // store the speed
             
-            printf("label: %d\t timestamp: %f\t speed: %f\n", speed_data.sensor_label, speed_data.timestamp ,speed_data.speed);
-
-
+            printf("frequency: %f\t speed: %f\n", frequency, speed); // print the frequency and speed
+            // printf("label: %d\t timestamp: %f\t speed: %f\n", speed_data.sensor_label, speed_data.timestamp ,speed_data.speed);
             xQueueSend(data_log_queue_handle, &speed_data, 0); // send the data to the data logging task
         }
         else

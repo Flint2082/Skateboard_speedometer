@@ -26,7 +26,7 @@
 #define WHEEL_DIAMETER 0.078f // Wheel diameter in meters
 
 // Defines
-#define BUTTON_GPIO 2 // GPIO pin for the button
+#define BUTTON_GPIO 12 // GPIO pin for the button
 #define LED_GPIO 4 // GPIO pin for the LED  
 
 // ADC defines

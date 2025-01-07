@@ -10,6 +10,8 @@ void data_log_task(void* parameters)
     // local variables for the data logging task
     esp_err_t ret; // var for error checking
 
+    uint8_t file_index = 0; // index for the file name
+
     sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 
     // Initialize SPI bus
@@ -40,60 +42,85 @@ void data_log_task(void* parameters)
     slot_config.gpio_cs = PIN_NUM_CS;
     slot_config.host_id = host.slot;
 
-
-    ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &card);
-    if(ret != ESP_OK) {
-        if (ret == ESP_FAIL) {
-            ESP_LOGE(TAG, "Failed to mount filesystem. If you want the card to be formatted, set the format_if_mount_failed flag to true.");
-        } else {
-            ESP_LOGE(TAG, "Failed to initialize the card (%s). "
-                "Make sure SD card lines have pull-up resistors in place.", esp_err_to_name(ret));
+    while(true)
+    {
+        ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &card);
+        if(ret != ESP_OK) {
+            if (ret == ESP_FAIL) {
+                ESP_LOGE(TAG, "Failed to mount filesystem. If you want the card to be formatted, set the format_if_mount_failed flag to true.");
+            } else {
+                ESP_LOGE(TAG, "Failed to initialize the card (%s). "
+                    "Make sure SD card lines have pull-up resistors in place.", esp_err_to_name(ret));
+            }
+        }else{
+            ESP_LOGI(TAG, "SD card mounted");
+            break;
         }
-        return;
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-    ESP_LOGI(TAG, "SD card mounted");
 
     sdmmc_card_print_info(stdout, card);
-
-    FILE* f = fopen("/sdcard/data.txt", "w");
-    if(f == NULL)
-    {
-        ESP_LOGE(TAG, "Failed to open file for writing");
-    }
-    else
-    {
-        fprintf(f, "sensor_label, timestamp, speed\n");
-        fclose(f);
-    }   
 
     while(true)
     {
         gpio_set_level(LED_GPIO, record_state); // set the LED state to the record state
-        if(data_log_queue_handle != NULL)
+
+        if(record_state == 0)
         {
             vTaskDelay(100 / portTICK_PERIOD_MS);
+            continue;
         }
-        else if(uxQueueMessagesWaiting(data_log_queue_handle) > 0)
+
+        gptimer_set_raw_count(glob_tim_handle, 0); // reset the timer
+        xQueueReset(data_log_queue_handle); // reset the data log queue
+        char file_name[64];
+        sprintf(file_name, "/sdcard/data/%d.txt", file_index);
+        FILE* f = fopen(file_name, "w");
+        if(f == NULL)
         {
-            data_t data;
-            if(xQueueReceive(data_log_queue_handle, &data, 0) == pdTRUE)
-            {
-                FILE* f = fopen("/sdcard/data.txt", "a");
-                if(f == NULL)
-                {
-                    ESP_LOGE(TAG, "Failed to open file for writing");
-                }
-                else
-                {
-                    fprintf(f, "%d, %f, %f\n", data.sensor_label, data.timestamp, data.speed);
-                    fclose(f);
-                }
-            }
+            ESP_LOGE(TAG, "Failed to open file for writing");
         }
         else
         {
-            vTaskDelay(100 / portTICK_PERIOD_MS);
+            fprintf(f, "sensor_label, run_ID, timestamp, speed \n");
+            fclose(f);
+        }   
+        
+        
+        while(record_state != 0)
+        {
+            if(data_log_queue_handle == NULL)
+            {
+                ESP_LOGE(TAG, "Data log queue handle is NULL");
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+            }
+            else if(uxQueueMessagesWaiting(data_log_queue_handle) > 0)
+            {
+                data_t data;
+                if(xQueueReceive(data_log_queue_handle, &data, 0) == pdTRUE)
+                {
+                    FILE* f = fopen(file_name, "a");
+                    if(f == NULL)
+                    {
+                        ESP_LOGE(TAG, "Failed to open file for writing");
+                    }
+                    else
+                    {
+                        ESP_LOGI(TAG, "Time: %f \tSpeed: %f", data.timestamp, data.speed);
+                        fprintf(f, "%d, %d, %f, %f\n", data.sensor_label, file_index, data.timestamp, data.speed);
+                        fclose(f);
+                    }
+                }else
+                {
+                    ESP_LOGE(TAG, "Failed to receive data from the queue");
+                }
+            }
+            else
+            {
+                // ESP_LOGI(TAG, "Waiting for data");
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+            }
         }
-
+        file_index++;
     }
 }

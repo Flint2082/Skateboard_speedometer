@@ -28,7 +28,7 @@ void app_main(void)
     io_conf.pin_bit_mask = (1ULL << BUTTON_GPIO);   // set the GPIO pin mask
     io_conf.mode = GPIO_MODE_INPUT;                 // set the GPIO mode to input
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;       // disable the pull up resistor  
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;   // disable the pull down resistor
+    io_conf.pull_down_en = GPIO_PULLDOWN_ENABLE;    // enable the pull down resistor
     io_conf.intr_type = GPIO_INTR_POSEDGE;          // set the interrupt type to rising edge
     gpio_config(&io_conf);                          // configure the GPIO
 
@@ -60,10 +60,13 @@ void app_main(void)
 
     adc_queue_handle = xQueueCreate(            FRAMES_PER_CONVERSION,                  // queue length
                                                 sizeof(adc_data_t));                    // queue item size
+    if(adc_queue_handle == NULL) ESP_LOGE(TAG, "Failed to create ADC queue");
+    else ESP_LOGI(TAG, "ADC queue created");
 
-    data_log_queue_handle = xQueueCreate(       10,                                     // queue length
+    data_log_queue_handle = xQueueCreate(       5 ,                                     // queue length
                                                 sizeof(data_t));                        // queue item size
-
+    if(data_log_queue_handle == NULL) ESP_LOGE(TAG, "Failed to create data log queue");
+    else ESP_LOGI(TAG, "Data log queue created");
 
     // Create the ADC task
     BaseType_t adc_task_status = xTaskCreate(
@@ -74,8 +77,8 @@ void app_main(void)
         ADC_TASK_PRIORITY,              // task priority
         &adc_task_handle                // pointer to store the task handle
     );
-    if (adc_task_status != pdPASS) 
-        ESP_LOGE(TAG, "Failed to create ADC task");
+    if (adc_task_status != pdPASS) ESP_LOGE(TAG, "Failed to create ADC task");
+    else ESP_LOGI(TAG, "ADC task created");
 
     // Create the conversion task
     BaseType_t conversion_task_status = xTaskCreate(
@@ -86,8 +89,8 @@ void app_main(void)
         CONVERSION_TASK_PRIORITY,       // task priority
         &conversion_task_handle         // pointer to store the task handle
     );
-    if (conversion_task_status != pdPASS) 
-        ESP_LOGE(TAG, "Failed to create conversion task");
+    if (conversion_task_status != pdPASS) ESP_LOGE(TAG, "Failed to create conversion task");
+    else ESP_LOGI(TAG, "Conversion task created");
 
     BaseType_t data_log_task_handle = xTaskCreate(               
         data_log_task,                  // task function
@@ -97,14 +100,8 @@ void app_main(void)
         DATA_LOG_TASK_PRIORITY,         // task priority
         &data_log_task_handle           // pointer to store the task handle
     );        
-    if (data_log_task_handle != pdPASS) 
-        ESP_LOGE(TAG, "Failed to create data log task");
-
-
-
-    
-
-
+    if (data_log_task_handle != pdPASS) ESP_LOGE(TAG, "Failed to create data log task");
+    else ESP_LOGI(TAG, "Data log task created");
 
     vTaskDelete(NULL); // delete the main task
 }
