@@ -68,8 +68,8 @@ void data_log_task(void* parameters)
         if(record_state == 0)
         {
             vTaskDelay(100 / portTICK_PERIOD_MS);
-            continue;
-        }
+                continue;
+            }
 
         gptimer_set_raw_count(glob_tim_handle, 0); // reset the timer
         xQueueReset(data_log_queue_handle); // reset the data log queue
@@ -96,10 +96,10 @@ void data_log_task(void* parameters)
             }
             else if(uxQueueMessagesWaiting(data_log_queue_handle) > 0)
             {
-                data_t data;
+                
                 if(xQueueReceive(data_log_queue_handle, &data, 0) == pdTRUE)
                 {
-                    FILE* f = fopen(file_name, "a");
+                    f = fopen(file_name, "a");
                     if(f == NULL)
                     {
                         ESP_LOGE(TAG, "Failed to open file for writing");
@@ -121,6 +121,9 @@ void data_log_task(void* parameters)
                 vTaskDelay(100 / portTICK_PERIOD_MS);
             }
         }
+        char file_name_tim[64];
+        sprintf(file_name_tim, "/sdcard/data/%f.txt", data.timestamp);
+        rename(file_name, file_name_tim);   
         file_index++;
     }
 }
