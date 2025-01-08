@@ -63,13 +63,14 @@ void data_log_task(void* parameters)
 
     while(true)
     {
-        gpio_set_level(LED_GPIO, record_state); // set the LED state to the record state
-
+        gpio_set_level(LED_GPIO, record_state); // set the LED state to the record state    
         if(record_state == 0)
         {
             vTaskDelay(100 / portTICK_PERIOD_MS);
-                continue;
-            }
+            continue;
+        }
+
+        data_t data; // data struct for the data logging task 
 
         gptimer_set_raw_count(glob_tim_handle, 0); // reset the timer
         xQueueReset(data_log_queue_handle); // reset the data log queue
@@ -122,7 +123,7 @@ void data_log_task(void* parameters)
             }
         }
         char file_name_tim[64];
-        sprintf(file_name_tim, "/sdcard/data/%f.txt", data.timestamp);
+        sprintf(file_name_tim, "/sdcard/data/%d.txt", (int)round(1000*data.timestamp));
         rename(file_name, file_name_tim);   
         file_index++;
     }
